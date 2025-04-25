@@ -2,121 +2,125 @@
 
 public static class LZW
 {
-    public static byte[] Encode(byte[] data, int dictSize = 4096)
+    public static byte[] Encode(byte[] input, int maxDictSize = 4096)
     {
-        var result = new List<byte> { 0 };
-        int bitsToEncode = 8, currBit = 0;
+        var output = new List<byte> { 0 };
+        int bits = 9, currBit = 0;
 
-        var root = CompressionTrie.InitRoot();
-        var currentNode = root;
-        var code = 256;
-
-        foreach (var @byte in data)
+        // инициализация дерева
+        var root = new TrieNode();
+        for (var i = 0; i < 256; i++)
         {
-            if (currentNode.Next.TryGetValue(@byte, out var nextNode))
+            root.Children[(byte)i] = new TrieNode { Number = i };
+        }
+
+        var w = root; // w - это строка с предыдущей итерации
+        var nextCode = 256;
+
+        foreach (byte a in input)
+        {
+            // если wa есть в словаре, то w = wa
+            if (w.Children.TryGetValue(a, out var nextNode))
             {
-                currentNode = nextNode;
+                w = nextNode;
                 continue;
             }
 
-            if (code < dictSize)
-                currentNode.Next[@byte] = CompressionTrie.InitTree(code++);
-            if (code >= 1 << bitsToEncode)
-                bitsToEncode++;
-            for (var i = bitsToEncode - 1; i >= 0; i--)
+            // добавление номера w к output
+            WriteBits(output, w.Number, bits, ref currBit);
+
+            // добавление wa в словарь
+            if (nextCode < maxDictSize)
             {
-                var bit = ((currentNode.Code & 1 << i) == 0 ? 0 : 1);
-                result[^1] |= (byte)(bit << (7 - currBit));
-                currBit += 1;
-                if (currBit >= 8)
-                {
-                    result.Add(0);
-                    currBit %= 8;
-                }
+                var newNode = new TrieNode { Number = nextCode++ };
+                w.Children[a] = newNode;
             }
 
-            currentNode = root.Next[@byte];
-        }
+            // w = a
+            w = root.Children[a];
 
-        if (code >= 1 << bitsToEncode)
-            bitsToEncode++;
-        for (var i = bitsToEncode - 1; i >= 0; i--)
-        {
-            var bit = (currentNode.Code & 1 << i) == 0 ? 0 : 1;
-            result[^1] |= (byte)(bit << (7 - currBit));
-            currBit += 1;
-            if (currBit >= 8)
+            // увеличение числа бит на номер при необходимости
+            if (nextCode >= 1 << bits)
             {
-                result.Add(0);
-                currBit %= 8;
+                bits++;
             }
         }
 
-        return result.ToArray();
+        WriteBits(output, w.Number, bits, ref currBit);
+
+        return output.ToArray();
     }
 
-    public static byte[] Decode(byte[] compressedData, int dictSize = 4096)
+    private static void WriteBits(List<byte> output, int code, int bits, ref int currBit)
     {
-        var reader = new Reader(compressedData)
+        for (var i = bits - 1; i >= 0; i--)
         {
-            BitsToRead = 9
-        };
+            var bit = (code >> i) & 1;
+            output[^1] |= (byte)(bit << (7 - currBit));
+            if (++currBit >= 8)
+            {
+                output.Add(0);
+                currBit = 0;
+            }
+        }
+    }
 
-        var result = new List<byte>();
+    public static byte[] Decode(byte[] bytes, int maxDictSize = 4096)
+    {
+        var input = new Reader(bytes) { BitsToRead = 9 };
+        var output = new List<byte>();
 
-        var root = DecompressionTrie.InitRoot();
-        var dict = new List<DecompressionTrie>(256);
-        var code = 256;
+        // инициализация словаря
+        var dict = new List<List<byte>>();
+        for (var i = 0; i < 256; i++)
+            dict.Add([(byte)i]);
 
-        foreach (var (@byte, node) in root.Next)
-            dict.Add(node);
+        var prevCode = input.ReadNumber();
+        if (prevCode == -1) return [];
+        var w = dict[prevCode]; // w - строка, взятая из словаря на предыдущем шаге
+        output.AddRange(w);
 
-        var currentNode = root;
-        var number = reader.ReadNumber();
-        while (number != -1)
+        while (true)
         {
-            if (number >= dict.Count)
+            var number = input.ReadNumber();
+            if (number == -1) break;
+
+            List<byte> v;
+            if (number < dict.Count)
             {
-                var node = currentNode;
-                while (node!.Parent != root)
-                    node = node.Parent;
-                var extensionNode = DecompressionTrie.InitTree(currentNode, node.Byte);
-                currentNode.Next[node.Byte] = extensionNode;
-                while (dict.Count <= number)
-                    dict.Add(null!);
-                dict[number] = extensionNode;
+                v = dict[number];
+            }
+            else if (number == dict.Count)
+            {
+                // особый случай KwK
+                v =
+                [
+                    ..w,
+                    w[0]
+                ];
+            }
+            else
+            {
+                throw new InvalidDataException("Invalid LZW code");
             }
 
-            var str = new List<byte>();
-            var pointer = dict[number];
-            while (pointer != root)
+            output.AddRange(v);
+
+            // добавление новой последовательности w*v[0] в словарь
+            if (dict.Count < maxDictSize)
             {
-                str.Add(pointer!.Byte);
-                pointer = pointer.Parent;
+                var newEntry = new List<byte>(w);
+                newEntry.Add(v[0]);
+                dict.Add(newEntry);
             }
 
-            str.Reverse();
-            result.AddRange(str);
+            w = v;
 
-            if (currentNode != root && code < dictSize)
-            {
-                var nextNode = DecompressionTrie.InitTree(currentNode, str[0]);
-                currentNode.Next[str[0]] = nextNode;
-                while (dict.Count <= code)
-                    dict.Add(null!);
-                dict[code] = nextNode;
-                code++;
-            }
-
-            currentNode = dict[number];
-
-            // code + 2, так как нужно учитывать задержку между чтением кода и добавлением его в словарь
-            if (code + 2 >= 1 << reader.BitsToRead)
-                reader.BitsToRead++;
-
-            number = reader.ReadNumber();
+            // увеличение числа бит на номер при необходимости
+            if (dict.Count >= (1 << input.BitsToRead) - 1)
+                input.BitsToRead++;
         }
 
-        return result.ToArray();
+        return output.ToArray();
     }
 }

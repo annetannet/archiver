@@ -2,40 +2,28 @@
 
 public class Reader
 {
-    private Stream stream;
-    private int bitsRemainderInCurrentByte;
-    private int currentByte;
-
-    public Reader(byte[] input)
-    {
-        stream = new MemoryStream(input);
-    }
-
+    private readonly byte[] data;
+    private int position;
+    private int bitPosition;
     public int BitsToRead { get; set; }
+
+    public Reader(byte[] data) => this.data = data;
 
     public int ReadNumber()
     {
-        var num = 0;
-        for (var i = 0; i < BitsToRead && num != -1; i++)
+        int result = 0;
+        for (int i = 0; i < BitsToRead; i++)
         {
-            if (bitsRemainderInCurrentByte == 0)
+            if (position >= data.Length) return -1;
+            int bit = (data[position] >> (7 - bitPosition)) & 1;
+            result = (result << 1) | bit;
+            if (++bitPosition >= 8)
             {
-                currentByte = stream.ReadByte();
-                bitsRemainderInCurrentByte = 8;
-            }
-
-            if (currentByte == -1)
-            {
-                num = -1;
-            }
-            else
-            {
-                num <<= 1;
-                num |= (currentByte >> (bitsRemainderInCurrentByte - 1)) & 0x1;
-                bitsRemainderInCurrentByte--;
+                bitPosition = 0;
+                position++;
             }
         }
 
-        return num;
+        return result;
     }
 }

@@ -10,6 +10,9 @@ public class Tests
     [TestCase("abracadabra")]
     [TestCase("BanBananana")]
     [TestCase("BanBanananananana")]
+    [TestCase(" ")]
+    [TestCase("        ")]
+    [TestCase("ф")]
     public void Test_HelloWorld(string text)
     {
         var txtBytes = Encoding.UTF8.GetBytes(text);
