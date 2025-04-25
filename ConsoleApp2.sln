@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp2", "ConsoleApp2\ConsoleApp2.csproj", "{851A0F22-EDA9-4A6C-A519-3067FC33DAFF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests_LZW", "Tests_LZW\Tests_LZW.csproj", "{1A9D9EB2-88FD-4402-9D1F-290AADCA9316}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{851A0F22-EDA9-4A6C-A519-3067FC33DAFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{851A0F22-EDA9-4A6C-A519-3067FC33DAFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{851A0F22-EDA9-4A6C-A519-3067FC33DAFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{851A0F22-EDA9-4A6C-A519-3067FC33DAFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A9D9EB2-88FD-4402-9D1F-290AADCA9316}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A9D9EB2-88FD-4402-9D1F-290AADCA9316}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A9D9EB2-88FD-4402-9D1F-290AADCA9316}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A9D9EB2-88FD-4402-9D1F-290AADCA9316}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
