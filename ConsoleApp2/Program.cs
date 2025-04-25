@@ -32,7 +32,7 @@ public static class Program
     private static void TestDictSizes(byte[] data)
     {
         var _2K = (int)Math.Pow(2, 11);
-        var _64K = (int)Math.Pow(2, 25);
+        var _64K = (int)Math.Pow(2, 16);
 
         Console.WriteLine("Размер словаря | Коэффициент сжатия");
 
