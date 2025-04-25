@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ConsoleApp2;
+﻿namespace ConsoleApp2;
 
 public static class Program
 {
